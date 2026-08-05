@@ -100,11 +100,16 @@ export default function UploadVideo() {
 
       refetch();
     } catch (err) {
-      toast.error(
-        err?.response?.data?.detail ||
-          "Upload failed"
-      );
-    } finally {
+  console.log("UPLOAD ERROR:", err);
+  console.log("Response:", err?.response);
+  console.log("Data:", err?.response?.data);
+
+  toast.error(
+    err?.response?.data?.detail ||
+    err?.message ||
+    "Upload failed"
+  );
+} finally {
       setUploading(false);
     }
   };
@@ -128,11 +133,16 @@ Highest Risk : ${data.highest_risk}`
 
       refetch();
     } catch (err) {
-      toast.error(
-        err?.response?.data?.detail ||
-          "Analysis failed"
-      );
-    } finally {
+  console.log("ANALYSIS ERROR:", err);
+  console.log("Response:", err?.response);
+  console.log("Data:", err?.response?.data);
+
+  toast.error(
+    err?.response?.data?.detail ||
+    err?.message ||
+    "Analysis failed"
+  );
+} finally {
       setAnalyzingId(null);
     }
   };

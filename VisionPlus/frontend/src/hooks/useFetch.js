@@ -1,38 +1,39 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from "react";
 
-/**
- * Small polling-friendly data fetcher.
- *
- * @param {Function} requestFn - () => Promise<AxiosResponse>
- * @param {Array} deps - re-fetch when these change
- * @param {number} pollMs - optional interval to auto re-fetch (0 = off)
- */
 export function useFetch(requestFn, deps = [], pollMs = 0) {
-  const [data, setData] = useState(null)
-  const [error, setError] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   const refetch = useCallback(async () => {
     try {
-      setError(null)
-      const res = await requestFn()
-      setData(res.data)
+      setLoading(true);
+      setError(null);
+
+      const response = await requestFn();
+
+      setData(response.data);
     } catch (err) {
-      setError(err)
+      console.error("Fetch Error:", err);
+      setError(err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps)
+  }, [requestFn, ...deps]);
 
   useEffect(() => {
-    setLoading(true)
-    refetch()
-    if (pollMs > 0) {
-      const id = setInterval(refetch, pollMs)
-      return () => clearInterval(id)
-    }
-  }, [refetch, pollMs])
+    refetch();
 
-  return { data, error, loading, refetch }
+    if (pollMs > 0) {
+      const interval = setInterval(refetch, pollMs);
+      return () => clearInterval(interval);
+    }
+  }, [refetch, pollMs]);
+
+  return {
+    data,
+    loading,
+    error,
+    refetch,
+  };
 }

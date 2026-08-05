@@ -1,16 +1,44 @@
+# ===========================
+# VisionPlus Backend Requirements
+# ===========================
+
+# FastAPI
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
-sqlalchemy>=2.0.0
-pydantic[email]>=2.0.0
-pydantic-settings>=2.0.0
+
+# Database
+sqlalchemy>=2.0.30
+alembic>=1.13.2
+psycopg2-binary>=2.9.9
+
+# Configuration
+pydantic[email]>=2.8.2
+pydantic-settings>=2.3.4
+python-dotenv>=1.0.1
+
+# Authentication
 python-jose[cryptography]>=3.3.0
-bcrypt>=4.0.0,<5.0.0  # called directly in app/core/security.py; passlib's CryptContext is unmaintained and breaks on bcrypt>=4.0
+bcrypt>=4.1.3
 python-multipart>=0.0.9
-aiofiles>=23.0.0
+
+# HTTP
 httpx>=0.27.0
-opencv-python-headless>=4.9.0
-supervision>=0.21.0
-ultralytics>=8.2.0
-alembic>=1.13.0
-psycopg2-binary>=2.9.9  # PostgreSQL driver; only imported at connect-time, so SQLite deployments are unaffected
-reportlab>=4.2.0  # PDF report export (pure-Python, no system dependencies)
+requests>=2.32.3
+aiofiles>=24.1.0
+
+# Computer Vision
+opencv-python-headless>=4.10.0.84
+numpy>=1.26.4
+Pillow>=10.4.0
+ultralytics>=8.3.0
+supervision>=0.22.0
+mediapipe==0.10.35
+
+# Reports
+reportlab>=4.2.2
+
+# Optional Data Processing
+pandas>=2.2.2
+
+# Logging / Utilities
+typing-extensions>=4.12.2
