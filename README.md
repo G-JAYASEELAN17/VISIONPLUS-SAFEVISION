@@ -215,6 +215,7 @@ Dashboard & Reports
 | **Jayaseelan G** | AI & Backend Development |
 | **Sakthivel S** | Frontend Development |
 | **Dinesh M** | AI Integration & Testing |
+| **Guna M** | Frontend Development & UI|UX |
 
 ---
 
