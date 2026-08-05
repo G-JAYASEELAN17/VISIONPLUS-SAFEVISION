@@ -23,7 +23,7 @@ class LiveMonitorState:
         self.is_running: bool = False
         self.is_paused: bool = False
         self.detection_enabled: bool = True
-        self.camera_index: int = 0
+        self.camera_source: str = "0"
         self.started_at: float | None = None
         self.stats: dict = {
             "people_count": 0,
@@ -73,6 +73,10 @@ class LiveMonitorState:
             self.detection_enabled = not self.detection_enabled
             return self.detection_enabled
 
+    def set_source(self, source: str) -> None:
+        with self._lock:
+            self.camera_source = source
+
     def update_stats(self, **kwargs) -> None:
         with self._lock:
             self.stats.update(kwargs)
@@ -83,6 +87,7 @@ class LiveMonitorState:
                 "is_running": self.is_running,
                 "is_paused": self.is_paused,
                 "detection_enabled": self.detection_enabled,
+                "camera_source": self.camera_source,
                 "started_at": self.started_at,
                 **self.stats,
             }

@@ -9,11 +9,11 @@ import {
   MdVisibility,
   MdVisibilityOff,
   MdDashboard,
-  MdRadioButtonChecked,
-  MdSpeed,
-  MdAspectRatio,
+  MdVideocam,
+  MdLink,
+  MdVideoFile,
+  MdSettingsInputAntenna,
 } from 'react-icons/md'
-import VideoPlayer from '../components/VideoPlayer'
 import ZoneCard from '../components/ZoneCard'
 import { useFetch } from '../hooks/useFetch'
 import {
@@ -26,6 +26,7 @@ import {
   resumeLiveMonitoring,
   restartLiveMonitoring,
   toggleLiveDetection,
+  setLiveStreamSource,
 } from '../services/api'
 import { CardSkeleton } from '../components/Loader'
 
@@ -41,7 +42,9 @@ export default function LiveMonitoring() {
   const [selectedId, setSelectedId] = useState(null)
   const [status, setStatus] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [streamKey, setStreamKey] = useState(0)
+  const [streamKey, setStreamKey] = useState(Date.now())
+  const [sourceType, setSourceType] = useState('webcam')
+  const [customUrl, setCustomUrl] = useState('')
   const containerRef = useRef(null)
   const pollRef = useRef(null)
 
@@ -74,16 +77,75 @@ export default function LiveMonitoring() {
     }
   }
 
-  const handleStart = () => runAction(async () => { const r = await startLiveMonitoring(); setStreamKey((k) => k + 1); return r })
+  const handleStart = () => runAction(async () => { const r = await startLiveMonitoring(); setStreamKey(Date.now()); return r })
   const handleStop = () => runAction(stopLiveMonitoring)
   const handlePause = () => runAction(pauseLiveMonitoring)
   const handleResume = () => runAction(resumeLiveMonitoring)
-  const handleRestart = () => runAction(async () => { const r = await restartLiveMonitoring(); setStreamKey((k) => k + 1); return r })
+  const handleRestart = () => runAction(async () => { const r = await restartLiveMonitoring(); setStreamKey(Date.now()); return r })
   const handleDetectionToggle = () => runAction(toggleLiveDetection).then(refreshStatus)
+
+  const SOURCE_OPTIONS = [
+    { key: 'webcam',   label: 'Laptop Webcam',       icon: MdVideocam,              value: '0' },
+    { key: 'droidcam', label: 'DroidCam / IP Camera', icon: MdLink,                 value: '' },
+    { key: 'rtsp',     label: 'RTSP Camera',          icon: MdSettingsInputAntenna, value: '' },
+    { key: 'video',    label: 'Uploaded Video',        icon: MdVideoFile,           value: 'uploads/videos/demo.mp4' },
+  ]
+
+  const handleSourceChange = async (key) => {
+    setSourceType(key)
+    const opt = SOURCE_OPTIONS.find((o) => o.key === key)
+    if (!opt) return
+    // For webcam and video the value is known immediately — send to backend
+    if (key === 'webcam' || key === 'video') {
+      setBusy(true)
+      try {
+        console.log('[VisionPlus] Setting source:', opt.value)
+        await setLiveStreamSource(opt.value)
+        // Always remount the stream img so the new source is picked up
+        setStreamKey(Date.now())
+        if (isRunning) {
+          const r = await restartLiveMonitoring()
+          setStatus(r.data)
+        }
+      } finally {
+        setBusy(false)
+      }
+    }
+    // DroidCam and RTSP need a URL entered by the user — handled by Apply button
+  }
+
+  const handleApplyCustomUrl = async () => {
+    if (!customUrl.trim()) return
+    setBusy(true)
+    try {
+      console.log("Sending camera source:", customUrl.trim())
+      console.log('[VisionPlus] Setting source (custom URL):', customUrl.trim())
+      await setLiveStreamSource(customUrl.trim())
+      // Always remount the stream img so the new source is picked up
+      setStreamKey(Date.now())
+      if (isRunning) {
+        const r = await restartLiveMonitoring()
+        setStatus(r.data)
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const isRunning = status?.is_running
   const isPaused = status?.is_paused
   const detectionEnabled = status?.detection_enabled
+
+  const streamUrl = useMemo(() => `${getLiveStreamUrl()}?t=${streamKey}`, [streamKey])
+  
+  const videoElement = useMemo(() => (
+    <img 
+      key={streamKey} 
+      src={streamUrl} 
+      className="w-full h-auto aspect-video object-cover" 
+      alt="Live CCTV Feed" 
+    />
+  ), [streamKey, streamUrl])
 
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
@@ -151,7 +213,7 @@ export default function LiveMonitoring() {
 
             {/* Video feed viewport with metadata HUD overlays */}
             <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-white/5">
-              <VideoPlayer key={streamKey} src={getLiveStreamUrl()} mode="mjpeg" live className="w-full h-auto aspect-video object-cover" />
+              {videoElement}
               
               {/* Telemetry overlay hud */}
               <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5 pointer-events-none">
@@ -263,6 +325,59 @@ export default function LiveMonitoring() {
 
         {/* Sidebar Info Panels */}
         <div className="space-y-6">
+          {/* ── Source Selector ── */}
+          <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-5 shadow-2xl">
+            <h3 className="mb-4 text-sm font-bold text-white flex items-center gap-2">
+              <MdCameraAlt className="text-primary text-lg" />
+              <span>Stream Source</span>
+            </h3>
+            <div className="space-y-2">
+              {SOURCE_OPTIONS.map((opt) => {
+                const Icon = opt.icon
+                return (
+                  <button
+                    key={opt.key}
+                    onClick={() => handleSourceChange(opt.key)}
+                    disabled={busy}
+                    className={`w-full flex items-center gap-3 rounded-2xl border px-4 py-3 text-xs transition-all disabled:opacity-50 ${
+                      sourceType === opt.key
+                        ? 'border-primary/40 bg-primary/10 text-white font-bold'
+                        : 'border-white/5 bg-white/[0.01] hover:bg-white/[0.03] text-slate-300'
+                    }`}
+                  >
+                    <Icon className="text-base flex-shrink-0" />
+                    <span>{opt.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+            {(sourceType === 'droidcam' || sourceType === 'rtsp') && (
+              <div className="mt-3 space-y-2">
+                <input
+                  value={customUrl}
+                  onChange={(e) => setCustomUrl(e.target.value)}
+                  placeholder={sourceType === 'droidcam' ? 'http://192.168.1.10:4747/video' : 'rtsp://user:pass@ip:554/stream'}
+                  className="w-full rounded-xl border border-white/10 bg-slate-900/60 py-2 px-3 text-xs text-white placeholder:text-slate-500 outline-none focus:border-primary/50 transition-all"
+                  aria-label="Enter stream URL"
+                />
+                <button
+                  onClick={handleApplyCustomUrl}
+                  disabled={busy || !customUrl.trim()}
+                  className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary/90 px-4 py-2 text-xs font-bold text-white hover:bg-primary transition disabled:opacity-50"
+                >
+                  <MdLink className="text-sm" /> Apply &amp; Connect
+                </button>
+              </div>
+            )}
+            {/* Active source indicator — confirms what the backend is using */}
+            {status?.camera_source && (
+              <div className="mt-3 rounded-xl border border-white/5 bg-white/[0.01] px-3 py-2">
+                <span className="text-[9px] uppercase font-bold text-slate-500 tracking-wider block mb-0.5">Active Source</span>
+                <span className="text-[10px] text-slate-300 font-mono break-all">{status.camera_source}</span>
+              </div>
+            )}
+          </div>
+
           {isRunning ? (
             <ZoneCard zones={status?.zones ? {
               'Zone A (Main entry)': status.zones['Zone A'] ?? 0,

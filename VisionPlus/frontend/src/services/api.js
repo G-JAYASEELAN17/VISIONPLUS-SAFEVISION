@@ -333,6 +333,9 @@ export const restartLiveMonitoring = () =>
 export const toggleLiveDetection = () =>
   api.post("/stream/detection-toggle");
 
+export const setLiveStreamSource = (source) =>
+  api.post("/stream/source", { source });
+
 // =======================================================
 // Media URL Resolver
 // =======================================================
