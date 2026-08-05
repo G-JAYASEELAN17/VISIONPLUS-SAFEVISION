@@ -1,0 +1,45 @@
+# Render Blueprint — deploys the VISION+ backend + a managed Postgres DB.
+#
+# Usage: push this repo to GitHub/GitLab, then in Render: New -> Blueprint,
+# point it at the repo. Render reads this file automatically.
+#
+# The frontend is NOT deployed here — deploy it to Vercel instead (see
+# frontend/vercel.json + DEPLOYMENT.md). Render is used for the backend
+# specifically because it needs a real, always-on process (video analysis,
+# the MJPEG live stream, and a persistent DB), which doesn't fit Vercel's
+# serverless model.
+
+databases:
+  - name: visionplus-db
+    plan: free
+    databaseName: visionplus
+    user: visionplus
+
+services:
+  - type: web
+    name: visionplus-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /system/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: visionplus-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true          # Render generates a real random secret — never left as the code default
+      - key: DEV_MODE
+        value: "false"               # set to "true" temporarily for a login-free demo deploy; NOT for real use
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false                  # set manually in the Render dashboard to your real Vercel URL(s), e.g.
+                                      # https://visionplus.vercel.app,https://visionplus-<hash>.vercel.app
+      - key: GROK_API_KEY
+        sync: false                  # optional — leave unset to use the built-in rule-based chatbot
+      - key: DETECTION_SAMPLE_EVERY
+        value: "5"
+    # Render's free-tier disk is ephemeral — uploaded videos/reports do NOT
+    # survive a redeploy on the free plan. Attach a paid persistent disk
+    # (Render Dashboard -> Disks) mounted at /app/uploads and /app/reports
+    # for real production use. Documented, not silently glossed over.

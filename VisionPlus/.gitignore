@@ -1,0 +1,48 @@
+# ── Environment / secrets ───────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+!*.env.example
+
+# ── Python (backend) ────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+env/
+*.db
+*.sqlite3
+backend/visionplus.db
+
+# Uploaded/generated media — never commit user content or analysis output
+backend/uploads/videos/*
+!backend/uploads/videos/.gitkeep
+backend/reports/*.mp4
+backend/reports/*.pdf
+backend/reports/*.csv
+!backend/reports/.gitkeep
+
+# YOLO model weights: yolo11n.pt (~5.6MB) is intentionally committed since
+# the app requires it to run and there's no separate download/CI step for
+# it in this project. Only ignore other/larger weight files placed here.
+backend/ai_models/*.pt
+!backend/ai_models/yolo11n.pt
+
+# ── Node / frontend ──────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/build/
+.vite/
+*.local
+
+# ── Editors / OS ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+npm-debug.log*
