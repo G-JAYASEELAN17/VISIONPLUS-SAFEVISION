@@ -52,6 +52,9 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+logger.info(f"CORS_ALLOWED_ORIGINS={settings.CORS_ALLOWED_ORIGINS}")
+logger.info(f"CORS parsed={settings.get_cors_origins()}")
+
 # ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
