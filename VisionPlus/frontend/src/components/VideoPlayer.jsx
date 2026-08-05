@@ -27,7 +27,6 @@ export default function VideoPlayer({ src, mode = 'video', live = false, classNa
         </span>
       )}
       {mode === 'mjpeg' ? (
-        // eslint-disable-next-line jsx-a11y/img-redundant-alt
         <img src={src} alt="Live camera feed" className="aspect-video w-full object-cover" />
       ) : (
         <video src={src} controls className="aspect-video w-full object-cover" />

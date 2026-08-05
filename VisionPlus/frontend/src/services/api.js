@@ -1,4 +1,5 @@
 import axios from "axios";
+import toast from "react-hot-toast";
 
 // =======================================================
 // VisionPlus API Configuration
@@ -24,7 +25,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("sv_token");
+    const token = localStorage.getItem("sv_token") || sessionStorage.getItem("sv_token");
 
     // Ignore fake development token
     if (token && token !== "dev-mode") {
@@ -48,6 +49,24 @@ api.interceptors.response.use(
   (error) => {
     console.error("API Error:", error);
 
+    if (error.code === "ECONNABORTED") {
+      toast.error("Request timed out. Please try again.");
+    } else if (error.message === "Network Error") {
+      if (error.response) {
+        toast.error(`Error ${error.response.status}: ${error.response.statusText}`);
+      } else {
+        toast.error("Network error. Make sure backend is running and CORS is allowed.");
+      }
+    } else if (error.response) {
+      if (error.response.status === 404) {
+        toast.error("Resource not found.");
+      } else if (error.response.status === 500) {
+        toast.error("Internal Server Error.");
+      } else if (error.response.status !== 401) {
+        toast.error(error.response.data?.detail || "An error occurred.");
+      }
+    }
+
     if (error.response) {
       console.error("Status:", error.response.status);
       console.error("Data:", error.response.data);
@@ -56,8 +75,10 @@ api.interceptors.response.use(
     if (error?.response?.status === 401) {
       localStorage.removeItem("sv_token");
       localStorage.removeItem("sv_user");
+      sessionStorage.removeItem("sv_token");
+      sessionStorage.removeItem("sv_user");
 
-      if (!window.location.pathname.startsWith("/login")) {
+      if (!window.location.pathname.startsWith("/login") && !window.location.pathname.startsWith("/signup")) {
         window.location.href = "/login";
       }
     }
@@ -361,6 +382,9 @@ export const getChatHistory = (limit = 50) =>
       limit,
     },
   });
+
+export const clearChatHistory = () =>
+  api.delete("/chatbot/history");
 
 // =======================================================
 // Health

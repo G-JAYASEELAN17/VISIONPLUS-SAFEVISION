@@ -5,6 +5,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import { PageLoader } from './components/Loader'
 
 import Login from './pages/Login'
+import Signup from './pages/Signup'
 
 // Route-level code splitting (Phase 17 — Performance): the production
 // bundle was a single 700KB+ JS chunk with zero splitting. Login stays
@@ -12,6 +13,7 @@ import Login from './pages/Login'
 // auth is lazy-loaded per route so the initial load only pays for what's
 // actually shown.
 const Dashboard = lazy(() => import('./pages/Dashboard'))
+const ChatbotPage = lazy(() => import('./pages/ChatbotPage'))
 const LiveMonitoring = lazy(() => import('./pages/LiveMonitoring'))
 const UploadVideo = lazy(() => import('./pages/UploadVideo'))
 const Reports = lazy(() => import('./pages/Reports'))
@@ -25,6 +27,7 @@ export default function App() {
     <Suspense fallback={<PageLoader label="Loading…" />}>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
         <Route
           element={
@@ -34,6 +37,7 @@ export default function App() {
           }
         >
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/chatbot" element={<ChatbotPage />} />
           <Route path="/live-monitoring" element={<LiveMonitoring />} />
           <Route path="/upload" element={<UploadVideo />} />
           <Route path="/reports" element={<Reports />} />

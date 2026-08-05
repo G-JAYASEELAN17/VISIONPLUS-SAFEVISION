@@ -13,10 +13,12 @@ import {
   MdStorage,
   MdMemory,
   MdCircle,
+  MdSmartToy,
 } from "react-icons/md";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Dashboard", icon: MdDashboard },
+  { to: "/chatbot", label: "AI Assistant", icon: MdSmartToy },
   { to: "/live-monitoring", label: "Live Monitoring", icon: MdVideocam },
   { to: "/upload", label: "Upload Video", icon: MdCloudUpload },
   { to: "/reports", label: "Reports", icon: MdDescription },

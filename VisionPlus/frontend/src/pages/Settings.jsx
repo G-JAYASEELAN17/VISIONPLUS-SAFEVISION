@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import CountUp from "react-countup";
 import toast from "react-hot-toast";
-
 import {
   MdAdd,
   MdDelete,
@@ -11,6 +10,11 @@ import {
   MdStorage,
   MdNotificationsActive,
   MdSettingsSuggest,
+  MdPerson,
+  MdDns,
+  MdCircle,
+  MdContentCopy,
+  MdInfoOutline,
 } from "react-icons/md";
 
 import { useAuth } from "../hooks/useAuth";
@@ -21,955 +25,506 @@ import {
   deleteCamera,
 } from "../services/api";
 
-import { PageLoader } from "../components/Loader";
+import { PageLoader, Spinner } from "../components/Loader";
 
-const TABS = [
-  "Profile",
-  "Cameras",
-  "Notifications",
-  "System",
-];
+const TABS = ["Profile", "Cameras", "Notifications", "System"];
 
 export default function Settings() {
-
   const { user } = useAuth();
-
-  const {
-    data: cameras,
-    loading,
-    refetch,
-  } = useFetch(getCameras, []);
-
-  const [tab, setTab] =
-    useState("Profile");
+  const { data: cameras, loading, refetch } = useFetch(getCameras, []);
+  const [tab, setTab] = useState("Profile");
 
   return (
-
-<div className="space-y-6">
-
-{/* Header */}
-
-<motion.div
-initial={{opacity:0,y:-20}}
-animate={{opacity:1,y:0}}
-className="rounded-3xl bg-gradient-to-r from-primary/20 to-secondary/20 p-6">
-
-<h1 className="text-3xl font-bold text-white">
-
-⚙️ SafeVision Settings
-
-</h1>
-
-<p className="mt-2 text-slate-400">
-
-Manage your account, AI system and cameras.
-
-</p>
-
-</motion.div>
-
-{/* KPI */}
-
-<div className="grid grid-cols-1 gap-5 md:grid-cols-4">
-
-<motion.div
-whileHover={{scale:1.03}}
-className="rounded-3xl bg-surface-card p-6">
-
-<MdSecurity className="text-5xl text-primary"/>
-
-<h2 className="mt-4 text-3xl font-bold text-white">
-
-{user?.role || "Admin"}
-
-</h2>
-
-<p className="text-slate-400">
-
-Role
-
-</p>
-
-</motion.div>
-
-<motion.div
-whileHover={{scale:1.03}}
-className="rounded-3xl bg-surface-card p-6">
-
-<MdStorage className="text-5xl text-success"/>
-
-<h2 className="mt-4 text-3xl font-bold text-white">
-
-<CountUp end={cameras?.length||0}/>
-
-</h2>
-
-<p className="text-slate-400">
-
-Connected Cameras
-
-</p>
-
-</motion.div>
-
-<motion.div
-whileHover={{scale:1.03}}
-className="rounded-3xl bg-surface-card p-6">
-
-<MdNotificationsActive className="text-5xl text-warning"/>
-
-<h2 className="mt-4 text-3xl font-bold text-white">
-
-ON
-
-</h2>
-
-<p className="text-slate-400">
-
-Notifications
-
-</p>
-
-</motion.div>
-
-<motion.div
-whileHover={{scale:1.03}}
-className="rounded-3xl bg-surface-card p-6">
-
-<MdSettingsSuggest className="text-5xl text-info"/>
-
-<h2 className="mt-4 text-3xl font-bold text-white">
-
-AI
-
-</h2>
-
-<p className="text-slate-400">
-
-System Ready
-
-</p>
-
-</motion.div>
-
-</div>
-
-{/* Tabs */}
-
-<div className="rounded-3xl bg-surface-card">
-
-<div className="flex gap-3 border-b border-surface-border p-4">
-
-{TABS.map((t)=>(
-
-<button
-key={t}
-onClick={()=>setTab(t)}
-className={`rounded-xl px-5 py-3 transition-all
-
-${tab===t
-?"bg-primary text-white shadow-lg"
-:"text-slate-400 hover:bg-surface-elevated"
-}`}>
-
-{t}
-
-</button>
-
-))}
-
-</div>
-
-<div className="p-6">
-
-{tab==="Profile" && <ProfileTab user={user}/>}
-
-{tab==="Cameras" && (
-
-<CamerasTab
-
-cameras={cameras}
-
-loading={loading}
-
-refetch={refetch}
-
-/>
-
-)}
-
-{tab==="Notifications" &&
-
-<NotificationsTab/>
-
-}
-
-{tab==="System" &&
-
-<SystemTab cameras={cameras}/>
-
-}
-
-</div>
-
-</div>
-
-</div>
-
+    <div className="space-y-6 select-none">
+      {/* Title Header */}
+      <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">System Configurations</h1>
+          <p className="text-sm text-text-muted">Manage active camera devices, user profiles, alert rules, and telemetry controls.</p>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 shadow-2xl flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Access Role</span>
+            <span className="block mt-2 text-xl font-black text-white capitalize">{user?.role || "Admin"}</span>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center text-xl">
+            <MdSecurity />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 shadow-2xl flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Cataloged Feeds</span>
+            <span className="block mt-2 text-2xl font-black text-white">
+              <CountUp end={cameras?.length || 0} />
+            </span>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-success/10 border border-success/20 text-success flex items-center justify-center text-xl">
+            <MdStorage />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 shadow-2xl flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Status Center</span>
+            <span className="block mt-2 text-xl font-black text-green-400">ON</span>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-warning/10 border border-warning/20 text-warning flex items-center justify-center text-xl">
+            <MdNotificationsActive />
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] p-5 shadow-2xl flex items-center justify-between">
+          <div>
+            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">AI Diagnostics</span>
+            <span className="block mt-2 text-xl font-black text-primary-light">READY</span>
+          </div>
+          <div className="h-10 w-10 rounded-xl bg-info/10 border border-info/20 text-info flex items-center justify-center text-xl">
+            <MdSettingsSuggest />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs Container */}
+      <div className="rounded-3xl border border-white/[0.08] bg-white/[0.02] shadow-2xl overflow-hidden">
+        <div className="flex gap-2 border-b border-white/5 p-4 overflow-x-auto">
+          {TABS.map((t) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                tab === t
+                  ? "bg-primary text-white shadow-lg"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
+              }`}
+              aria-label={`Open ${t} tab`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        <div className="p-6">
+          {tab === "Profile" && <ProfileTab user={user} />}
+          {tab === "Cameras" && (
+            <CamerasTab cameras={cameras} loading={loading} refetch={refetch} />
+          )}
+          {tab === "Notifications" && <NotificationsTab />}
+          {tab === "System" && <SystemTab cameras={cameras} />}
+        </div>
+      </div>
+    </div>
   );
-
 }
-function ProfileTab({ user }) {
 
-  const [password,setPassword]=useState("");
+function ProfileTab({ user }) {
+  const [fullName, setFullName] = useState(user?.full_name || "");
+  const [email, setEmail] = useState(user?.email || "");
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const displayName = fullName || email || "Administrator";
+  const userInitials = displayName.charAt(0).toUpperCase();
+
+  const handleSaveProfile = async () => {
+    if (!fullName || !email) {
+      toast.error("Full name and Email cannot be blank!");
+      return;
+    }
+    setSaving(true);
+    // Simulate updating API
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    setSaving(false);
+    toast.success("Profile records updated successfully!");
+  };
+
+  const handleReset = () => {
+    setFullName(user?.full_name || "");
+    setEmail(user?.email || "");
+    setPassword("");
+  };
 
   return (
-
-<div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
-
-{/* Profile */}
-
-<motion.div
-initial={{opacity:0,x:-20}}
-animate={{opacity:1,x:0}}
-className="rounded-3xl bg-surface-elevated p-8">
-
-<div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-primary to-secondary text-5xl font-bold text-white">
-
-{user?.full_name?.charAt(0).toUpperCase()}
-
-</div>
-
-<h2 className="mt-6 text-center text-2xl font-bold text-white">
-
-{user?.full_name}
-
-</h2>
-
-<p className="mt-2 text-center text-slate-400">
-
-{user?.email}
-
-</p>
-
-<div className="mt-8 space-y-4">
-
-<div className="rounded-2xl bg-surface-card p-4">
-
-<p className="text-xs uppercase text-slate-500">
-
-Role
-
-</p>
-
-<h3 className="mt-1 text-lg font-semibold capitalize text-white">
-
-{user?.role}
-
-</h3>
-
-</div>
-
-<div className="rounded-2xl bg-surface-card p-4">
-
-<p className="text-xs uppercase text-slate-500">
-
-Account Status
-
-</p>
-
-<h3 className="mt-1 font-semibold text-success">
-
-Active
-
-</h3>
-
-</div>
-
-</div>
-
-</motion.div>
-
-{/* Profile Settings */}
-
-<motion.div
-initial={{opacity:0,x:20}}
-animate={{opacity:1,x:0}}
-className="lg:col-span-2 rounded-3xl bg-surface-elevated p-8">
-
-<h2 className="mb-6 text-2xl font-bold text-white">
-
-Profile Settings
-
-</h2>
-
-<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
-<div>
-
-<label className="mb-2 block text-sm text-slate-400">
-
-Full Name
-
-</label>
-
-<input
-defaultValue={user?.full_name}
-className="w-full rounded-xl bg-surface px-4 py-3 text-white focus:border-primary focus:outline-none"
-/>
-
-</div>
-
-<div>
-
-<label className="mb-2 block text-sm text-slate-400">
-
-Email
-
-</label>
-
-<input
-defaultValue={user?.email}
-className="w-full rounded-xl bg-surface px-4 py-3 text-white focus:border-primary focus:outline-none"
-/>
-
-</div>
-
-<div className="md:col-span-2">
-
-<label className="mb-2 block text-sm text-slate-400">
-
-New Password
-
-</label>
-
-<input
-type="password"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-placeholder="Enter new password"
-className="w-full rounded-xl bg-surface px-4 py-3 text-white focus:border-primary focus:outline-none"
-/>
-
-</div>
-
-</div>
-
-<div className="mt-8 flex gap-4">
-
-<button
-onClick={()=>toast.success("Profile Updated")}
-className="rounded-xl bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-dark">
-
-Save Changes
-
-</button>
-
-<button
-onClick={()=>setPassword("")}
-className="rounded-xl bg-surface px-6 py-3 font-semibold text-white">
-
-Reset
-
-</button>
-
-</div>
-
-<div className="mt-10 rounded-2xl border border-warning/20 bg-warning/10 p-5">
-
-<h3 className="font-bold text-warning">
-
-Security Tips
-
-</h3>
-
-<ul className="mt-3 space-y-2 text-sm text-slate-300">
-
-<li>• Use at least 8 characters.</li>
-
-<li>• Include uppercase & lowercase.</li>
-
-<li>• Add numbers & symbols.</li>
-
-<li>• Never share your password.</li>
-
-</ul>
-
-</div>
-
-</motion.div>
-
-</div>
-
-  )
-
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* Left side: Profile card details */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rounded-2xl border border-white/5 bg-slate-950/40 p-6 flex flex-col items-center justify-between"
+      >
+        <div className="w-full text-center space-y-4">
+          <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 text-3xl font-black text-white shadow-xl">
+            {userInitials}
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-white leading-tight">{displayName}</h2>
+            <p className="text-xs text-text-muted mt-0.5">{email}</p>
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-white/[0.01] p-3 text-left space-y-2">
+            <div className="flex justify-between text-[11px]">
+              <span className="text-text-muted">Account Role:</span>
+              <span className="font-bold text-primary-light uppercase tracking-wider">{user?.role || "Administrator"}</span>
+            </div>
+            <div className="flex justify-between text-[11px]">
+              <span className="text-text-muted">Status:</span>
+              <span className="font-bold text-success">Active</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Session details */}
+        <div className="w-full border-t border-white/5 pt-4 mt-6 text-[10px] text-text-muted space-y-1">
+          <span className="font-bold uppercase tracking-wider block text-slate-400 mb-1.5">Session Credentials</span>
+          <div>Terminal: <span className="font-semibold text-slate-300">VISIONPLUS-DESKTOP</span></div>
+          <div>IP Location: <span className="font-semibold text-slate-300">127.0.0.1 (Localhost)</span></div>
+          <div>Authorization: <span className="font-semibold text-slate-300">Bearer Token (JWT)</span></div>
+        </div>
+      </motion.div>
+
+      {/* Right side: Input Form details */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="lg:col-span-2 rounded-2xl border border-white/5 bg-slate-950/40 p-6 space-y-5"
+      >
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider">Account Information</h2>
+        
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Full Name</label>
+            <input
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+              aria-label="Full Name"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Email Address</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+              aria-label="Email"
+            />
+          </div>
+
+          <div className="md:col-span-2 space-y-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Update Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter new account password..."
+              className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+              aria-label="New Password"
+            />
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex gap-2.5 pt-2">
+          <button
+            onClick={handleSaveProfile}
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-dark transition disabled:opacity-50"
+            aria-label="Save changes"
+          >
+            {saving && <Spinner size={12} />}
+            <span>Save Changes</span>
+          </button>
+          <button
+            onClick={handleReset}
+            className="rounded-xl border border-white/10 bg-white/[0.01] hover:bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-300 transition"
+            aria-label="Reset forms"
+          >
+            Reset
+          </button>
+        </div>
+
+        <div className="rounded-xl border border-warning/20 bg-warning/[0.02] p-4 space-y-2">
+          <h3 className="font-bold text-warning text-xs">Security Standards</h3>
+          <ul className="text-[10px] text-slate-300 font-medium space-y-1">
+            <li>• Password credentials must exceed 8 character indexes.</li>
+            <li>• Ensure multi-class tokens are configured (symbols, numbers).</li>
+            <li>• Session timeouts enforce token re-validation cycles.</li>
+          </ul>
+        </div>
+      </motion.div>
+    </div>
+  );
 }
+
 function CamerasTab({ cameras, loading, refetch }) {
-  const [showForm, setShowForm] = useState(false)
-
-  const [saving, setSaving] = useState(false)
-
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
     camera_name: "",
     location: "",
     stream_url: "",
-  })
+  });
 
   const submit = async (e) => {
-    e.preventDefault()
-
-    setSaving(true)
-
+    e.preventDefault();
+    setSaving(true);
     try {
-
-      await addCamera(form)
-
-      toast.success("Camera Added Successfully")
-
+      await addCamera(form);
+      toast.success("Camera Added Successfully");
       setForm({
         camera_name: "",
         location: "",
         stream_url: "",
-      })
-
-      setShowForm(false)
-
-      refetch()
-
+      });
+      setShowForm(false);
+      refetch();
     } catch (err) {
-
-      toast.error(
-        err?.response?.data?.detail ||
-          "Unable to add camera"
-      )
-
+      toast.error(err?.response?.data?.detail || "Unable to add camera");
     } finally {
-
-      setSaving(false)
-
+      setSaving(false);
     }
-  }
+  };
 
   const remove = async (id) => {
-
-    if (!confirm("Delete this camera?")) return
-
+    if (!confirm("Confirm deleting camera?")) return;
     try {
-
-      await deleteCamera(id)
-
-      toast.success("Camera Deleted")
-
-      refetch()
-
+      await deleteCamera(id);
+      toast.success("Camera Deleted");
+      refetch();
     } catch (err) {
-
-      toast.error("Delete failed")
-
+      toast.error("Delete failed");
     }
-
-  }
+  };
 
   return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider">Device Inventory</h2>
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-dark transition"
+          aria-label="Add camera"
+        >
+          <MdAdd /> Add Camera
+        </button>
+      </div>
 
-<div>
+      {showForm && (
+        <motion.form
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          onSubmit={submit}
+          className="rounded-2xl border border-white/5 bg-slate-950/40 p-5 space-y-4"
+        >
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider">Register Camera Stream</h3>
+          <div className="grid gap-3 md:grid-cols-3">
+            <input
+              required
+              placeholder="Camera Name"
+              value={form.camera_name}
+              onChange={(e) => setForm({ ...form, camera_name: e.target.value })}
+              className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+              aria-label="Camera Name"
+            />
+            <input
+              required
+              placeholder="Location"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+              aria-label="Location"
+            />
+            <input
+              required
+              placeholder="RTSP / Webcam URL"
+              value={form.stream_url}
+              onChange={(e) => setForm({ ...form, stream_url: e.target.value })}
+              className="rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-xs text-white outline-none focus:border-primary/50 transition"
+              aria-label="RTSP URL"
+            />
+          </div>
+          <button
+            disabled={saving}
+            className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-dark transition disabled:opacity-50"
+            aria-label="Save Camera"
+          >
+            {saving && <Spinner size={12} />}
+            <span>Save Device</span>
+          </button>
+        </motion.form>
+      )}
 
-<div className="mb-6 flex items-center justify-between">
+      {loading ? (
+        <PageLoader label="Loading hardware inventory..." />
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {(cameras || []).length === 0 && (
+            <div className="rounded-2xl border border-dashed border-white/10 py-12 text-center bg-white/[0.01] col-span-full">
+              <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">No devices mapped yet.</span>
+            </div>
+          )}
 
-<h2 className="text-2xl font-bold text-white">
+          {(cameras || []).map((camera) => (
+            <motion.div
+              key={camera.id}
+              whileHover={{ scale: 1.01 }}
+              className="rounded-2xl border border-white/5 bg-slate-950/40 p-5 flex flex-col justify-between gap-4"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xs font-bold text-white">{camera.camera_name}</h3>
+                  <span className="text-[10px] text-text-muted mt-0.5 block">📍 Location: {camera.location}</span>
+                  <p className="mt-2 text-[9px] text-slate-500 truncate max-w-[220px] font-mono">{camera.stream_url}</p>
+                </div>
+                <span className={`rounded-xl border px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${
+                  camera.status === 'Active' ? 'bg-success/10 text-success border-success/20' : 'bg-slate-500/10 text-slate-400 border-white/10'
+                }`}>
+                  {camera.status}
+                </span>
+              </div>
 
-Connected Cameras
-
-</h2>
-
-<button
-onClick={() => setShowForm(!showForm)}
-className="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark">
-
-<MdAdd className="inline mr-2"/>
-
-Add Camera
-
-</button>
-
-</div>
-
-{showForm && (
-
-<motion.form
-
-initial={{opacity:0,y:-20}}
-
-animate={{opacity:1,y:0}}
-
-onSubmit={submit}
-
-className="mb-8 rounded-3xl bg-surface-elevated p-6">
-
-<h3 className="mb-5 text-xl font-bold text-white">
-
-New Camera
-
-</h3>
-
-<div className="grid gap-5 md:grid-cols-3">
-
-<input
-required
-placeholder="Camera Name"
-value={form.camera_name}
-onChange={(e)=>
-setForm({
-...form,
-camera_name:e.target.value
-})
+              <div className="flex gap-2 border-t border-white/5 pt-3">
+                <button
+                  onClick={() => remove(camera.id)}
+                  className="flex-1 flex items-center justify-center gap-1 rounded-xl bg-danger/10 border border-danger/20 py-1.5 text-[10px] font-bold text-danger hover:bg-danger/20 transition"
+                  aria-label="Delete camera"
+                >
+                  <MdDelete /> Delete
+                </button>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
-className="rounded-xl bg-surface px-4 py-3 text-white"
-/>
 
-<input
-required
-placeholder="Location"
-value={form.location}
-onChange={(e)=>
-setForm({
-...form,
-location:e.target.value
-})
-}
-className="rounded-xl bg-surface px-4 py-3 text-white"
-/>
-
-<input
-required
-placeholder="RTSP URL"
-value={form.stream_url}
-onChange={(e)=>
-setForm({
-...form,
-stream_url:e.target.value
-})
-}
-className="rounded-xl bg-surface px-4 py-3 text-white"
-/>
-
-</div>
-
-<button
-disabled={saving}
-className="mt-6 rounded-xl bg-primary px-6 py-3 font-semibold text-white">
-
-{saving ? "Saving..." : "Save Camera"}
-
-</button>
-
-</motion.form>
-
-)}
-
-{loading ? (
-
-<PageLoader/>
-
-) : (
-
-<div className="grid gap-5 md:grid-cols-2">
-
-{(cameras||[]).length===0 && (
-
-<div className="rounded-3xl bg-surface-elevated p-12 text-center text-slate-500">
-
-No Cameras Added
-
-</div>
-
-)}
-
-{(cameras||[]).map((camera)=>(
-
-<motion.div
-
-key={camera.id}
-
-whileHover={{
-scale:1.03,
-y:-5
-}}
-
-className="rounded-3xl bg-surface-elevated p-6 shadow-xl">
-
-<div className="flex justify-between">
-
-<div>
-
-<h2 className="text-xl font-bold text-white">
-
-{camera.camera_name}
-
-</h2>
-
-<p className="mt-2 text-slate-400">
-
-📍 {camera.location}
-
-</p>
-
-<p className="mt-3 break-all text-xs text-slate-500">
-
-{camera.stream_url}
-
-</p>
-
-</div>
-
-<div>
-
-<span
-className={`rounded-full px-3 py-1 text-xs font-bold
-
-${camera.status==="Active"
-
-?"bg-green-500/20 text-green-400"
-
-:"bg-red-500/20 text-red-400"
-
-}`}>
-
-{camera.status}
-
-</span>
-
-</div>
-
-</div>
-
-<div className="mt-8 flex gap-3">
-
-<button
-className="flex-1 rounded-xl bg-primary py-2 text-white transition hover:bg-primary-dark">
-
-<MdEdit className="inline mr-2"/>
-
-Edit
-
-</button>
-
-<button
-
-onClick={()=>remove(camera.id)}
-
-className="flex-1 rounded-xl bg-danger py-2 text-white transition hover:opacity-90">
-
-<MdDelete className="inline mr-2"/>
-
-Delete
-
-</button>
-
-</div>
-
-</motion.div>
-
-))}
-
-</div>
-
-)}
-
-</div>
-
-  )
-
-}
 function NotificationsTab() {
-
   const [emailAlerts, setEmailAlerts] = useState(true);
   const [pushAlerts, setPushAlerts] = useState(true);
   const [criticalOnly, setCriticalOnly] = useState(false);
 
   const save = () => {
-    toast.success("Notification settings saved");
+    toast.success("Notification preferences updated!");
   };
 
   return (
+    <div className="space-y-6">
+      <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-6 space-y-5">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider">Alert Configurations</h2>
+        
+        <div className="space-y-4 text-xs font-medium text-slate-300">
+          <label className="flex items-center justify-between cursor-pointer">
+            <span>Email Alert Logs</span>
+            <input
+              type="checkbox"
+              checked={emailAlerts}
+              onChange={() => setEmailAlerts(!emailAlerts)}
+              className="accent-primary"
+              aria-label="Email Alert Logs"
+            />
+          </label>
+          
+          <label className="flex items-center justify-between cursor-pointer">
+            <span>Push Desk Notifications</span>
+            <input
+              type="checkbox"
+              checked={pushAlerts}
+              onChange={() => setPushAlerts(!pushAlerts)}
+              className="accent-primary"
+              aria-label="Push Desk Notifications"
+            />
+          </label>
 
-<div className="space-y-6">
+          <label className="flex items-center justify-between cursor-pointer">
+            <span>Critical Alerts Priority Filter</span>
+            <input
+              type="checkbox"
+              checked={criticalOnly}
+              onChange={() => setCriticalOnly(!criticalOnly)}
+              className="accent-primary"
+              aria-label="Critical Alerts Priority Filter"
+            />
+          </label>
+        </div>
 
-<div className="rounded-3xl bg-surface-elevated p-6">
-
-<h2 className="mb-6 text-2xl font-bold text-white">
-
-🔔 Notification Settings
-
-</h2>
-
-<div className="space-y-5">
-
-<label className="flex items-center justify-between">
-
-<span className="text-white">
-
-Email Alerts
-
-</span>
-
-<input
-type="checkbox"
-checked={emailAlerts}
-onChange={()=>
-setEmailAlerts(!emailAlerts)
-}
-/>
-
-</label>
-
-<label className="flex items-center justify-between">
-
-<span className="text-white">
-
-Push Notifications
-
-</span>
-
-<input
-type="checkbox"
-checked={pushAlerts}
-onChange={()=>
-setPushAlerts(!pushAlerts)
-}
-/>
-
-</label>
-
-<label className="flex items-center justify-between">
-
-<span className="text-white">
-
-Critical Alerts Only
-
-</span>
-
-<input
-type="checkbox"
-checked={criticalOnly}
-onChange={()=>
-setCriticalOnly(!criticalOnly)
-}
-/>
-
-</label>
-
-</div>
-
-<button
-onClick={save}
-className="mt-8 rounded-xl bg-primary px-6 py-3 font-semibold text-white">
-
-Save Settings
-
-</button>
-
-</div>
-
-</div>
-
+        <button
+          onClick={save}
+          className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-dark transition"
+          aria-label="Save Settings"
+        >
+          Save Settings
+        </button>
+      </div>
+    </div>
   );
-
 }
 
 function SystemTab({ cameras }) {
-
   return (
-
-<div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-
-<div className="rounded-3xl bg-surface-elevated p-6">
-
-<h2 className="mb-5 text-xl font-bold text-white">
-
-🖥 System Information
-
-</h2>
-
-<div className="space-y-4">
-
-<div className="flex justify-between">
-
-<span className="text-slate-400">
-
-Backend
-
-</span>
-
-<span className="text-success">
-
-Online
-
-</span>
-
-</div>
-
-<div className="flex justify-between">
-
-<span className="text-slate-400">
-
-AI Model
-
-</span>
-
-<span className="text-white">
-
-YOLOv11
-
-</span>
-
-</div>
-
-<div className="flex justify-between">
-
-<span className="text-slate-400">
-
-Database
-
-</span>
-
-<span className="text-white">
-
-PostgreSQL
-
-</span>
-
-</div>
-
-<div className="flex justify-between">
-
-<span className="text-slate-400">
-
-Frontend
-
-</span>
-
-<span className="text-success">
-
-Connected
-
-</span>
-
-</div>
-
-<div className="flex justify-between">
-
-<span className="text-slate-400">
-
-Version
-
-</span>
-
-<span className="text-white">
-
-v1.0.0
-
-</span>
-
-</div>
-
-</div>
-
-</div>
-
-<div className="rounded-3xl bg-surface-elevated p-6">
-
-<h2 className="mb-5 text-xl font-bold text-white">
-
-📊 Statistics
-
-</h2>
-
-<div className="space-y-5">
-
-<div>
-
-<p className="text-slate-400">
-
-Connected Cameras
-
-</p>
-
-<h2 className="text-4xl font-bold text-primary">
-
-{cameras?.length || 0}
-
-</h2>
-
-</div>
-
-<div>
-
-<p className="text-slate-400">
-
-Server Status
-
-</p>
-
-<div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-700">
-
-<div className="h-full w-full bg-green-500"/>
-
-</div>
-
-<p className="mt-2 text-green-400">
-
-100% Operational
-
-</p>
-
-</div>
-
-<div>
-
-<p className="text-slate-400">
-
-AI Detection Engine
-
-</p>
-
-<div className="mt-2 h-3 overflow-hidden rounded-full bg-slate-700">
-
-<div className="h-full w-[95%] bg-primary"/>
-
-</div>
-
-<p className="mt-2 text-primary-light">
-
-95% Ready
-
-</p>
-
-</div>
-
-</div>
-
-</div>
-
-<div className="rounded-3xl border border-primary/20 bg-primary/10 p-6 md:col-span-2">
-
-<h2 className="text-xl font-bold text-primary-light">
-
-🚀 SafeVision AI Enterprise
-
-</h2>
-
-<p className="mt-3 text-slate-300">
-
-This system is currently connected to the backend API, PostgreSQL database,
-YOLO AI detection engine, reporting module and live monitoring services.
-
-</p>
-
-</div>
-
-</div>
-
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+      {/* System stats */}
+      <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-6 space-y-4">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <MdDns />
+          <span>System Information</span>
+        </h2>
+        
+        <div className="space-y-3 text-xs font-medium">
+          <div className="flex justify-between border-b border-white/5 pb-2">
+            <span className="text-slate-400">Server Backend Status</span>
+            <span className="text-success font-bold flex items-center gap-1"><MdCircle size={8} /> Online</span>
+          </div>
+          <div className="flex justify-between border-b border-white/5 pb-2">
+            <span className="text-slate-400">Active AI Model</span>
+            <span className="text-white font-mono">YOLOv11-Core (Precise)</span>
+          </div>
+          <div className="flex justify-between border-b border-white/5 pb-2">
+            <span className="text-slate-400">Database Core</span>
+            <span className="text-white">PostgreSQL Connected</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">System Software Build</span>
+            <span className="text-white font-mono">v1.0.0-Stable</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Diagnostics progress */}
+      <div className="rounded-2xl border border-white/5 bg-slate-950/40 p-6 space-y-5">
+        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <MdInfoOutline />
+          <span>Diagnostics Telemetry</span>
+        </h2>
+
+        <div className="space-y-4 text-xs font-semibold">
+          <div className="space-y-1.5">
+            <div className="flex justify-between">
+              <span className="text-slate-400">Database Storage Health</span>
+              <span className="text-success">100% Operational</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-success rounded-full" style={{ width: '100%' }} />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <div className="flex justify-between">
+              <span className="text-slate-400">YOLO Model Loader</span>
+              <span className="text-primary-light">95% Ready</span>
+            </div>
+            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+              <div className="h-full bg-primary rounded-full" style={{ width: '95%' }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
-
 }

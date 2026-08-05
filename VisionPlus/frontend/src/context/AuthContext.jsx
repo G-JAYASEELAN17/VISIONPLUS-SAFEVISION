@@ -3,10 +3,7 @@ import { login as loginRequest, getMe } from '../services/api'
 
 export const AuthContext = createContext(null)
 
-// Development Mode: must match the backend's DEV_MODE flag (see .env).
-// When on, the app never shows the login page and always behaves as if a
-// Demo Administrator is signed in. Real auth code below is untouched and
-// re-activates instantly the moment VITE_DEV_MODE is set back to false.
+// Development Mode: must match the backend's DEV_MODE flag.
 export const DEV_MODE = String(import.meta.env.VITE_DEV_MODE).toLowerCase() === 'true'
 
 const DEV_ADMIN_USER = {
@@ -19,57 +16,93 @@ const DEV_ADMIN_USER = {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
     if (DEV_MODE) return DEV_ADMIN_USER
-    const raw = localStorage.getItem('sv_user')
-    return raw ? JSON.parse(raw) : null
+    try {
+      const localUser = localStorage.getItem('sv_user')
+      if (localUser) return JSON.parse(localUser)
+      const sessionUser = sessionStorage.getItem('sv_user')
+      if (sessionUser) return JSON.parse(sessionUser)
+    } catch (e) {
+      console.error('Failed to parse user from storage', e)
+    }
+    return null
   })
-  const [token, setToken] = useState(() => (DEV_MODE ? 'dev-mode' : localStorage.getItem('sv_token')))
-  const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (token) localStorage.setItem('sv_token', token)
-    else localStorage.removeItem('sv_token')
-  }, [token])
+  const [token, setToken] = useState(() => {
+    if (DEV_MODE) return 'dev-mode'
+    return localStorage.getItem('sv_token') || sessionStorage.getItem('sv_token') || null
+  })
 
-  useEffect(() => {
-    if (user) localStorage.setItem('sv_user', JSON.stringify(user))
-    else localStorage.removeItem('sv_user')
-  }, [user])
+  // Start with loading = true to verify the token during initialization
+  const [loading, setLoading] = useState(true)
 
   const fetchProfile = useCallback(async () => {
     try {
       const { data } = await getMe()
       setUser(data)
-    } catch {
-      // Token invalid/expired — the axios 401 interceptor already handles
-      // clearing the session and redirecting to /login in that case.
+      // Save user profile to whichever storage is currently holding the token
+      if (localStorage.getItem('sv_token')) {
+        localStorage.setItem('sv_user', JSON.stringify(data))
+      } else if (sessionStorage.getItem('sv_token')) {
+        sessionStorage.setItem('sv_user', JSON.stringify(data))
+      }
+      return data;
+    } catch (err) {
+      // Clear invalid credentials
+      localStorage.removeItem('sv_token')
+      localStorage.removeItem('sv_user')
+      sessionStorage.removeItem('sv_token')
+      sessionStorage.removeItem('sv_user')
+      setToken(null)
+      setUser(null)
+      throw err
     }
   }, [])
 
-  // Restore the real profile on reload if a token is already present.
-  // In DEV_MODE, also sync once against GET /auth/me: the backend bypasses
-  // auth and returns the real demo-admin DB row (correct numeric id), which
-  // matters for anything that joins on user_id (e.g. chat history).
+  // Auto restore session on startup
   useEffect(() => {
-    if (DEV_MODE || (token && !user)) fetchProfile()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const restoreSession = async () => {
+      if (DEV_MODE) {
+        setUser(DEV_ADMIN_USER)
+        setToken('dev-mode')
+        setLoading(false)
+        return
+      }
 
-  const login = useCallback(async (email, password) => {
+      const activeToken = localStorage.getItem('sv_token') || sessionStorage.getItem('sv_token')
+      if (activeToken) {
+        try {
+          setToken(activeToken)
+          await fetchProfile()
+        } catch (err) {
+          console.error('Failed to auto-restore session:', err)
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        setLoading(false)
+      }
+    }
+
+    restoreSession()
+  }, [fetchProfile])
+
+  const login = useCallback(async (email, password, remember = true) => {
     setLoading(true)
     try {
       const { data } = await loginRequest(email, password)
-      // Write synchronously so the axios interceptor (which reads from
-      // localStorage) picks it up immediately — setToken's mirroring
-      // useEffect below hasn't run yet at this point in the same tick.
-      localStorage.setItem('sv_token', data.access_token)
+      const storage = remember ? localStorage : sessionStorage
+      
+      // Store token first
+      storage.setItem('sv_token', data.access_token)
       setToken(data.access_token)
-      // Backend's GET /auth/me (added alongside /auth/login) returns the
-      // real profile: { id, full_name, email, role }.
-      await fetchProfile()
+      
+      // Fetch profile to get real database user details
+      const profile = await fetchProfile()
+      storage.setItem('sv_user', JSON.stringify(profile))
+      
       return { success: true }
     } catch (err) {
-      const message =
-        err?.response?.data?.detail || 'Invalid email or password'
+      const message = err?.response?.data?.detail || 'Invalid email or password'
       return { success: false, message }
     } finally {
       setLoading(false)
@@ -77,13 +110,25 @@ export function AuthProvider({ children }) {
   }, [fetchProfile])
 
   const logout = useCallback(() => {
+    localStorage.removeItem('sv_token')
+    localStorage.removeItem('sv_user')
+    sessionStorage.removeItem('sv_token')
+    sessionStorage.removeItem('sv_user')
     setToken(null)
     setUser(null)
   }, [])
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isAuthenticated: !!token, loading, login, logout }}
+      value={{
+        user,
+        token,
+        isAuthenticated: !!token,
+        loading,
+        login,
+        logout,
+        refreshProfile: fetchProfile
+      }}
     >
       {children}
     </AuthContext.Provider>

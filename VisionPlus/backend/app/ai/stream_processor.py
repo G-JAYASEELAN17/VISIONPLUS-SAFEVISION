@@ -49,6 +49,7 @@ def process_frame(frame, detection_enabled: bool = True):
             "object_count": 0,
             "risk_level": "LOW",
             "latency_ms": latency_ms,
+            "zones": {"Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0},
         }
 
     results = detect(frame, classes=DETECT_CLASSES)
@@ -56,6 +57,11 @@ def process_frame(frame, detection_enabled: bool = True):
     tracked = track(result, get_live_tracker())
     counts = classify_counts(tracked)
     risk = calculate_risk(counts["people"])
+    
+    # Generate live zone analytics based on current frame detections
+    from app.ai.zone_analysis import analyze_zones
+    zones = analyze_zones(tracked, frame.shape[1], frame.shape[0])
+    
     annotated = draw(frame, tracked)
 
     latency_ms = round((time.perf_counter() - start) * 1000, 1)
@@ -74,4 +80,5 @@ def process_frame(frame, detection_enabled: bool = True):
         "object_count": counts["objects"],
         "risk_level": risk,
         "latency_ms": latency_ms,
+        "zones": zones,
     }

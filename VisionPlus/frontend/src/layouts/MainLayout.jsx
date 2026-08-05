@@ -23,7 +23,7 @@ export default function MainLayout() {
         </main>
       </div>
 
-      <AIChatBot />
+      {pathname !== '/chatbot' && <AIChatBot mode="floating" />}
     </div>
   )
 }

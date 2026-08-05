@@ -35,6 +35,7 @@ class LiveMonitorState:
             "frame_time": None,
             "camera_status": "unknown",       # unknown | connected | unavailable | error
             "connection_status": "disconnected",  # disconnected | connecting | connected | error
+            "zones": {"Zone A": 0, "Zone B": 0, "Zone C": 0, "Zone D": 0},
         }
 
     def start(self) -> None:
